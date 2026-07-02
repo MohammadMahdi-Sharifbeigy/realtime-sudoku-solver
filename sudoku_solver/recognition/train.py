@@ -249,6 +249,8 @@ def train_model(config: AppConfig, *, dry_run: bool = False) -> TrainingArtifact
                     "batch_progress "
                     f"epoch={epoch + 1}/{epochs} "
                     f"batch={batch_index}/{total_batches} "
+                    f"progress={_render_progress_bar(batch_index, total_batches)} "
+                    f"percent={_format_percent(batch_index, total_batches)} "
                     f"running_loss={running_loss:.4f} "
                     f"elapsed={_format_duration(elapsed_epoch_seconds)} "
                     f"epoch_eta={_format_duration(epoch_eta_seconds)} "
@@ -399,6 +401,19 @@ def _format_duration(seconds: float) -> str:
     if hours > 0:
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
     return f"{minutes:02d}:{secs:02d}"
+
+
+def _render_progress_bar(current: int, total: int, *, width: int = 20) -> str:
+    if total <= 0:
+        return "[" + ("." * width) + "]"
+    filled = min(width, max(0, int(round((current / total) * width))))
+    return "[" + ("#" * filled) + ("." * (width - filled)) + "]"
+
+
+def _format_percent(current: int, total: int) -> str:
+    if total <= 0:
+        return "0.0%"
+    return f"{(current / total) * 100:.1f}%"
 
 
 def _load_record_image(record: SampleRecord) -> np.ndarray:
