@@ -1,0 +1,11 @@
+training:
+  datasets:
+    - mnist
+    - digit_images
+  batch_size: 64
+  num_workers: 0
+
+runtime:
+  input_size: 64
+  device: cpu
+  debug: false
