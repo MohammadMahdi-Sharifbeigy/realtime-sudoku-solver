@@ -1,10 +1,12 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from sudoku_solver.data.base import SampleRecord
 from sudoku_solver.data.compose import compose_datasets, load_dataset
 from sudoku_solver.data.empty_cells import build_empty_cell_records
+from sudoku_solver.data.hoda import load_hoda_dataset
 
 
 def test_compose_datasets_preserves_requested_order():
@@ -68,3 +70,46 @@ def test_build_empty_cell_records_assigns_canonical_zero_label():
 def test_load_dataset_rejects_unknown_source():
     with pytest.raises(ValueError, match="Unsupported dataset name"):
         load_dataset("unknown", "train")
+
+
+def test_load_dataset_digit_images_auto_splits_flat_tree(tmp_path: Path):
+    for label in ("1", "2"):
+        label_dir = tmp_path / label
+        label_dir.mkdir(parents=True)
+        for index in range(4):
+            (label_dir / f"{index}.png").write_bytes(b"fake")
+
+    dataset = load_dataset("digit_images", "train", root=tmp_path, val_split=0.25)
+
+    assert len(dataset.records) > 0
+    assert all(record.source == "digit_images" for record in dataset.records)
+
+
+def test_load_hoda_dataset_reads_cdb_from_digitdb_folder(monkeypatch, tmp_path: Path):
+    digitdb_root = tmp_path / "DigitDB"
+    digitdb_root.mkdir(parents=True)
+    (digitdb_root / "Train 60000.cdb").write_bytes(b"train")
+    (digitdb_root / "Test 20000.cdb").write_bytes(b"test")
+
+    def fake_read_hoda_dataset(
+        path: str,
+        images_height: int = 28,
+        images_width: int = 28,
+        one_hot: bool = False,
+        reshape: bool = False,
+    ):
+        del images_height, images_width, one_hot, reshape
+        if "Train" in path:
+            x_values = np.zeros((4, 1, 28, 28), dtype=np.float32)
+            y_values = np.array([1, 2, 3, 4], dtype=np.int64)
+        else:
+            x_values = np.zeros((2, 1, 28, 28), dtype=np.float32)
+            y_values = np.array([5, 6], dtype=np.int64)
+        return x_values, y_values
+
+    monkeypatch.setattr("sudoku_solver.data.hoda.read_hoda_dataset", fake_read_hoda_dataset)
+
+    dataset = load_hoda_dataset("train", root=digitdb_root, val_split=0.25, random_seed=7)
+
+    assert len(dataset.records) == 3
+    assert all(record.source == "hoda" for record in dataset.records)

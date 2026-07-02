@@ -8,7 +8,7 @@ This repository now targets:
 - PyTorch with a MobileNet-based classifier for digit recognition
 - mixed dataset support for `MNIST`, `Hoda`/`DigitDB`, and local `digit_images`
 - image and webcam runtime modes
-- CLI-first execution with an optional lightweight demo UI scaffold
+- CLI-first execution with an optional lightweight demo UI
 
 ## Project Status
 
@@ -19,15 +19,15 @@ Current state:
 - Python package structure is in place
 - Sudoku solver and board validation are implemented
 - dataset mapping, validation, and composition are implemented
-- MobileNet model scaffold and training dry-run are implemented
-- evaluation scaffold and metrics export are implemented
+- MobileNet model training, validation logging, and checkpoint export are implemented
+- evaluation and metrics export are implemented
 - OpenCV board detection, warping, cell extraction, and overlay scaffolds are implemented
 - image and webcam CLI runtime scaffolds are implemented
 
 Current limitation:
 
-- the runtime still uses a placeholder predictor by default
-- real checkpoint-backed digit recognition and full dataset-root wiring still need to be completed for end-to-end recognition quality
+- recognition quality still depends on the quality and class balance of the local datasets you train on
+- the optional UI is image-based today; webcam use remains on the main CLI runtime
 
 ## Repository Structure
 
@@ -70,6 +70,8 @@ This config currently defines:
 
 - selected datasets
 - batch size and worker count
+- epochs, learning rate, and weight decay
+- validation split and checkpoint behavior
 - input image size
 - runtime device
 - debug flag
@@ -109,10 +111,17 @@ This verifies:
 - label validation
 - MobileNet model creation
 
+Train with the current local dataset layout:
+
+```bash
+python scripts/train.py --config sudoku_solver/config/default.yaml
+```
+
 Current behavior in this repo:
 
-- dry-run works
-- full real training depends on wiring real dataset roots and image records into the adapters
+- dry-run validates dataset loading and label mapping without optimization
+- full training prints per-epoch `train_loss` and `val_accuracy`
+- checkpoints are written to `models/checkpoints/last.pt` and `models/checkpoints/best.pt`
 
 ## Evaluation
 
@@ -126,7 +135,7 @@ This currently writes:
 
 - `metrics.json`
 
-If a checkpoint path is later wired in:
+Evaluate a trained checkpoint:
 
 ```bash
 python scripts/evaluate.py --config sudoku_solver/config/default.yaml --checkpoint path/to/model.pt --output-dir reports/evaluation
@@ -156,17 +165,20 @@ python main.py --source 0
 
 - `--display` is enabled by default
 - use `--no-display` for non-interactive runs
-- `--checkpoint` is already exposed in the CLI, but the default runtime predictor is still a placeholder
+- if `--checkpoint` is omitted, runtime auto-uses `models/checkpoints/best.pt`, then `last.pt`
+- webcam mode uses the same checkpoint-backed recognizer as image mode
 
 ## Optional Demo UI
 
-A minimal optional demo CLI scaffold exists:
+A minimal optional image UI exists:
 
 ```bash
 python -m sudoku_solver.ui.demo --help
+python -m streamlit run sudoku_solver/ui/demo.py -- --backend streamlit --checkpoint models/checkpoints/best.pt
+python -m sudoku_solver.ui.demo --backend gradio --checkpoint models/checkpoints/best.pt
 ```
 
-This is intentionally isolated from the core pipeline.
+Install `streamlit` or `gradio` separately because they are optional UI dependencies.
 
 ## Testing
 

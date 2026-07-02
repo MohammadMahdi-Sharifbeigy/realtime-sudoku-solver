@@ -45,15 +45,35 @@ def load_dataset(
     *,
     root: str | Path | None = None,
     records: list[SampleRecord] | None = None,
+    val_split: float = 0.15,
+    random_seed: int = 2023,
 ) -> DatasetAdapter:
     """Load a single supported dataset adapter."""
     normalized_name = name.strip().lower()
     if normalized_name == "mnist":
-        return load_mnist_dataset(split, root=root, records=records)
+        return load_mnist_dataset(
+            split,
+            root=root,
+            records=records,
+            val_split=val_split,
+            random_seed=random_seed,
+        )
     if normalized_name == "hoda":
-        return load_hoda_dataset(split, root=root, records=records)
+        return load_hoda_dataset(
+            split,
+            root=root,
+            records=records,
+            val_split=val_split,
+            random_seed=random_seed,
+        )
     if normalized_name == "digit_images":
-        return load_digit_images_dataset(split, root=root, records=records)
+        return load_digit_images_dataset(
+            split,
+            root=root,
+            records=records,
+            val_split=val_split,
+            random_seed=random_seed,
+        )
     raise ValueError(f"Unsupported dataset name: {name}")
 
 
@@ -63,6 +83,8 @@ def compose_datasets(
     *,
     roots: DatasetRoots | None = None,
     record_overrides: DatasetRecordMap | None = None,
+    val_split: float = 0.15,
+    random_seed: int = 2023,
 ) -> CombinedDataset:
     """Compose datasets in the exact order requested by the caller."""
     datasets: list[DatasetAdapter] = []
@@ -78,6 +100,8 @@ def compose_datasets(
                 split,
                 root=dataset_root,
                 records=dataset_records,
+                val_split=val_split,
+                random_seed=random_seed,
             )
         )
     return CombinedDataset(datasets=datasets)

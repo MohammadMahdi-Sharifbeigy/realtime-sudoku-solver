@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 
 SUPPORTED_SOURCES = {"digit_images", "mnist", "hoda"}
 CANONICAL_LABELS = set(range(10))
@@ -34,6 +36,12 @@ def _map_ascii_digit_label(raw_label: str | int, source: str) -> int:
     if isinstance(raw_label, bool):
         raise ValueError(f"Unsupported label for {source}: {raw_label!r}")
 
+    if source == "digit_images" and isinstance(raw_label, str):
+        stripped = raw_label.strip()
+        match = re.fullmatch(r"sample0*([1-9])", stripped, flags=re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+
     try:
         canonical = int(raw_label)
     except (TypeError, ValueError) as exc:
@@ -51,4 +59,3 @@ def _map_hoda_label(raw_label: str | int) -> int:
             return HODA_PERSIAN_DIGITS[stripped]
         return _map_ascii_digit_label(stripped, "hoda")
     return _map_ascii_digit_label(raw_label, "hoda")
-

@@ -41,6 +41,11 @@ def main() -> int:
     print(f"eval_records={artifacts.split_sizes['eval']}")
     print(f"dry_run={artifacts.dry_run}")
     print(f"train_steps={artifacts.train_steps}")
+    print(f"epochs_completed={artifacts.epochs_completed}")
+    print(f"train_loss={artifacts.train_loss}")
+    print(f"val_accuracy={artifacts.val_accuracy}")
+    print(f"checkpoint_path={artifacts.checkpoint_path}")
+    print(f"best_checkpoint_path={artifacts.best_checkpoint_path}")
 
     for report in artifacts.validation_reports:
         print(

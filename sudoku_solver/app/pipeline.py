@@ -14,7 +14,11 @@ from sudoku_solver.cv.board_detect import detect_board
 from sudoku_solver.cv.cells import extract_cells
 from sudoku_solver.cv.overlay import overlay_solution
 from sudoku_solver.cv.warp import warp_board
-from sudoku_solver.recognition.predict import CellPredictor, predict_board
+from sudoku_solver.recognition.predict import (
+    CellPredictor,
+    load_checkpoint_predictor,
+    predict_board,
+)
 from sudoku_solver.solver.backtracking import solve_board
 from sudoku_solver.solver.board import Board
 
@@ -195,7 +199,7 @@ def _resolve_predictor(
 ) -> CellPredictor:
     if predictor_factory is not None:
         return predictor_factory(config, checkpoint_path)
-    return build_placeholder_predictor()
+    return load_checkpoint_predictor(config, checkpoint_path)
 
 
 def build_placeholder_predictor() -> CellPredictor:

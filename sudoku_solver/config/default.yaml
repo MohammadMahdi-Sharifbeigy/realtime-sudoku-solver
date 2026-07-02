@@ -4,6 +4,18 @@ training:
     - digit_images
   batch_size: 64
   num_workers: 0
+  epochs: 50
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  val_split: 0.15
+  random_seed: 2023
+  data_root: data
+  checkpoint_dir: models/checkpoints
+  save_best_only: false
+  dataset_paths:
+    mnist: data/mnist
+    hoda: data/DigitDB
+    digit_images: data/digit_images
 
 runtime:
   input_size: 64

@@ -18,9 +18,11 @@ if str(REPO_ROOT) not in sys.path:
 from sudoku_solver.config.loader import load_config
 from sudoku_solver.data.base import SampleRecord, ValidationReport
 from sudoku_solver.data.compose import CombinedDataset, compose_datasets
+from sudoku_solver.data.data_utils import resolve_dataset_root
 from sudoku_solver.data.validate import validate_records
 from sudoku_solver.recognition.evaluate import evaluate_model
 from sudoku_solver.recognition.model import build_model
+from sudoku_solver.recognition.predict import resolve_checkpoint_path
 from sudoku_solver.recognition.train import RecognitionDataset
 
 
@@ -50,17 +52,38 @@ def main() -> int:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    eval_dataset = compose_datasets(config.training.datasets, "val")
+    roots = {
+        dataset_name: resolve_dataset_root(
+            dataset_name,
+            configured_paths=config.training.dataset_paths,
+            default_root=config.training.data_root,
+        )
+        for dataset_name in config.training.datasets
+    }
+    eval_dataset = compose_datasets(
+        config.training.datasets,
+        "val",
+        roots=roots,
+        val_split=config.training.val_split,
+        random_seed=config.training.random_seed,
+    )
     if len(eval_dataset) == 0:
-        eval_dataset = compose_datasets(config.training.datasets, "test")
+        eval_dataset = compose_datasets(
+            config.training.datasets,
+            "test",
+            roots=roots,
+            val_split=config.training.val_split,
+            random_seed=config.training.random_seed,
+        )
 
     validation_reports = _validate_combined_dataset(eval_dataset)
     dataloader = _build_eval_dataloader(eval_dataset, config.runtime.input_size)
 
     model = build_model(num_classes=10)
     checkpoint_loaded = False
-    if args.checkpoint:
-        checkpoint_loaded = _try_load_checkpoint(model, Path(args.checkpoint), config.runtime.device)
+    resolved_checkpoint = resolve_checkpoint_path(config, args.checkpoint)
+    if resolved_checkpoint is not None:
+        checkpoint_loaded = _try_load_checkpoint(model, resolved_checkpoint, config.runtime.device)
 
     class_names = [str(index) for index in range(10)]
     results = evaluate_model(
@@ -71,7 +94,7 @@ def main() -> int:
     )
 
     payload = {
-        "checkpoint_path": args.checkpoint,
+        "checkpoint_path": str(resolved_checkpoint) if resolved_checkpoint is not None else args.checkpoint,
         "checkpoint_loaded": checkpoint_loaded,
         "datasets": eval_dataset.source_names,
         "validation_reports": [_report_to_dict(report) for report in validation_reports],
